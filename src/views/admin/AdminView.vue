@@ -1,28 +1,20 @@
 <script lang="ts" setup>
-import useProperties from '../../composables/useProperties';
+import useProperties from "../../composables/useProperties";
+import { propertyPrice } from "../../helpers";
 
-const { propertiesCollection, propertyPrice } = useProperties();
+const { propertiesCollection, deleteItem } = useProperties();
 </script>
 
 <template>
-  <h2 class="text-center text-h5 my-5 font-weight-bold">
-    Admin Panel
-  </h2>
+  <h2 class="text-center text-h5 my-5 font-weight-bold">Admin Panel</h2>
 
-  <v-btn
-    color="teal-darken-2"
-    variant="flat"
-    :to="{ name: 'new-property' }"
-  >
+  <v-btn color="teal-darken-2" variant="flat" :to="{ name: 'new-property' }">
     New Property
   </v-btn>
 
   <v-card class="mx-auto mt-10" flat>
     <v-list>
-      <v-list-item
-        v-for="property in propertiesCollection"
-        :key="property.id"
-      >
+      <v-list-item v-for="property in propertiesCollection" :key="property.id">
         <template v-slot:prepend>
           <v-list-item-media :start="true">
             <img
@@ -46,12 +38,16 @@ const { propertiesCollection, propertyPrice } = useProperties();
             :to="{
               name: 'edit-property',
               params: { id: property.id },
-            }"
-          >
+            }">
             Edit
           </v-btn>
 
-          <v-btn variant="flat" color="red-darken-3">Delete</v-btn>
+          <v-btn
+            variant="flat"
+            color="red-darken-3"
+            @click="deleteItem(property.id, property.image)"
+            >Delete</v-btn
+          >
         </template>
       </v-list-item>
     </v-list>

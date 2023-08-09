@@ -1,14 +1,14 @@
 <script lang="ts" setup>
-import { watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { useFirestore, useDocument } from 'vuefire';
-import { doc, updateDoc } from 'firebase/firestore';
-import { useField, useForm } from 'vee-validate';
-import 'leaflet/dist/leaflet.css';
-import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet';
-import useImage from '../../composables/useImage';
-import useLocationMap from '../../composables/useLocationMap';
-import { validationSchema } from '../../validation/newPropertySchema';
+import { watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useFirestore, useDocument } from "vuefire";
+import { doc, updateDoc } from "firebase/firestore";
+import { useField, useForm } from "vee-validate";
+import "leaflet/dist/leaflet.css";
+import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
+import useImage from "../../composables/useImage";
+import useLocationMap from "../../composables/useLocationMap";
+import { validationSchema } from "../../validation/newPropertySchema";
 
 const items = [1, 2, 3, 4, 5];
 
@@ -17,20 +17,21 @@ const { zoom, center, pin } = useLocationMap();
 
 const { handleSubmit } = useForm({ validationSchema });
 
-const title = useField('title');
-const image = useField('image');
-const price = useField('price');
-const rooms = useField('rooms');
-const bathrooms = useField('bathrooms');
-const parking = useField('parking');
-const description = useField('description');
-const pool = useField('pool');
+const title = useField("title");
+const image = useField("image");
+const price = useField("price");
+const rooms = useField("rooms");
+const bathrooms = useField("bathrooms");
+const parking = useField("parking");
+const description = useField("description");
+const pool = useField("pool");
 
 const route = useRoute();
+const router = useRouter();
 
 // Get property to update
 const db = useFirestore();
-const docRef = doc(db, 'properties', route.params.id);
+const docRef = doc(db, "properties", route.params.id);
 const property = useDocument(docRef);
 
 watch(property, (property) => {
@@ -44,7 +45,25 @@ watch(property, (property) => {
   center.value = property.location;
 });
 
-const submit = handleSubmit((values) => {});
+const submit = handleSubmit(async (values) => {
+  const { image, ...property } = values;
+  if (imageUrl.value) {
+    const data = {
+      ...property,
+      image: imageUrl.value,
+      location: center.value,
+    };
+    await updateDoc(docRef, data);
+  } else {
+    const data = {
+      ...property,
+      location: center.value,
+    };
+    await updateDoc(docRef, data);
+  }
+
+  router.push({ name: "admin-properties" });
+});
 </script>
 
 <template>
@@ -61,8 +80,7 @@ const submit = handleSubmit((values) => {});
         v-model="title.value.value"
         :error-messages="title.errorMessage.value"
         label="Title"
-        class="mb-5"
-      ></v-text-field>
+        class="mb-5"></v-text-field>
 
       <v-file-input
         v-model="image.value.value"
@@ -71,19 +89,21 @@ const submit = handleSubmit((values) => {});
         prepend-icon="mdi-camera"
         label="Photo"
         class="mb-5"
-        @change="uploadImage"
-      ></v-file-input>
+        @change="uploadImage"></v-file-input>
 
       <div class="my-5">
-        <p class="font-weight-bold">Imagen Actual:</p>
+        <p class="font-weight-bold">Actual Image:</p>
+
+        <img v-if="imageUrl" class="w-50" :src="imageUrl" />
+
+        <img v-else class="w-50" :src="property?.image" />
       </div>
 
       <v-text-field
         v-model="price.value.value"
         :error-messages="price.errorMessage.value"
         label="Price"
-        class="mb-5"
-      ></v-text-field>
+        class="mb-5"></v-text-field>
 
       <v-row>
         <v-col cols="12" md="4">
@@ -92,8 +112,7 @@ const submit = handleSubmit((values) => {});
             class="mb-5"
             :items="items"
             v-model="rooms.value.value"
-            :error-messages="rooms.errorMessage.value"
-          />
+            :error-messages="rooms.errorMessage.value" />
         </v-col>
 
         <v-col cols="12" md="4">
@@ -102,8 +121,7 @@ const submit = handleSubmit((values) => {});
             class="mb-5"
             :items="items"
             v-model="bathrooms.value.value"
-            :error-messages="bathrooms.errorMessage.value"
-          />
+            :error-messages="bathrooms.errorMessage.value" />
         </v-col>
 
         <v-col cols="12" md="4">
@@ -112,8 +130,7 @@ const submit = handleSubmit((values) => {});
             class="mb-5"
             :items="items"
             v-model="parking.value.value"
-            :error-messages="parking.errorMessage.value"
-          />
+            :error-messages="parking.errorMessage.value" />
         </v-col>
       </v-row>
 
@@ -121,13 +138,9 @@ const submit = handleSubmit((values) => {});
         v-model="description.value.value"
         :error-messages="description.errorMessage.value"
         label="Description"
-        class="mb-5"
-      ></v-textarea>
+        class="mb-5"></v-textarea>
 
-      <v-checkbox
-        v-model="pool.value.value"
-        label="Pool"
-      ></v-checkbox>
+      <v-checkbox v-model="pool.value.value" label="Pool"></v-checkbox>
 
       <h2 class="font-weight-bold text-center my-5">Location</h2>
       <div class="pb-10">
@@ -135,22 +148,15 @@ const submit = handleSubmit((values) => {});
           <LMap
             v-model:zoom="zoom"
             :center="center"
-            :use-global-leaflet="false"
-          >
+            :use-global-leaflet="false">
             <LMarker :lat-lng="center" draggable @moveend="pin" />
             <LTileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            ></LTileLayer>
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"></LTileLayer>
           </LMap>
         </div>
       </div>
 
-      <v-btn
-        color="pink-accent-3"
-        size="x-large"
-        block
-        @click="submit"
-      >
+      <v-btn color="pink-accent-3" size="x-large" block @click="submit">
         Save Changes
       </v-btn>
     </v-form>
